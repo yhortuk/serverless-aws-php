@@ -1,0 +1,81 @@
+service: php-user-service
+app: course
+
+provider:
+    name: aws
+    region: eu-central-1
+    stage: ${opt:stage, 'dev'}
+    runtime: provided
+    memorySize: 1024
+    timeout: 3
+    iamRoleStatements:
+        - Effect: Allow
+          Action:
+              - "dynamodb:Query"
+              - "dynamodb:PutItem"
+          Resource:
+              - arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.dynamodb.userTable}
+              - arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.dynamodb.userTable}/index/pk
+    environment:
+        DYNAMODB_USER_TABLE: ${self:custom.dynamodb.userTable}
+        BREF_LOOP_MAX: 1000
+        JWT_SECRET: ${param:JWT_SECRET}
+plugins:
+  - ./vendor/bref/bref
+  - serverless-pseudo-parameters
+functions:
+    Authorize:
+      handler: index.php
+      layers:
+        - ${bref:layer.php-74}
+    UserCreate:
+        handler: index.php
+        layers:
+            - ${bref:layer.php-74}
+        events:
+            - http:
+                method: post
+                cors: true
+                path: /v1/user
+                schema:
+                    application/json: ${file(src/Schemas/UserCreateRequest.json)}
+    UserLogin:
+      handler: index.php
+      layers:
+        - ${bref:layer.php-74}
+      events:
+        - http:
+            method: post
+            cors: true
+            path: /v1/user/login
+            schema:
+              application/json: ${file(src/Schemas/UserLoginRequest.json)}
+    AuthTest:
+      handler: index.php
+      layers:
+        - ${bref:layer.php-74}
+      events:
+        - http:
+            method: get
+            cors: true
+            path: /v1/user/test
+            authorizer:
+              name: Authorize
+              type: token
+custom:
+    dynamodb:
+        userTable: ${self:service}-user-${self:provider.stage}
+resources:
+    Resources:
+        userTable:
+            Type: AWS::DynamoDB::Table
+            DeletionPolicy: Retain
+            Properties:
+                TableName: ${self:custom.dynamodb.userTable}
+                AttributeDefinitions:
+                    - AttributeName: pk
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: pk
+                      KeyType: HASH
+                BillingMode: PAY_PER_REQUEST
