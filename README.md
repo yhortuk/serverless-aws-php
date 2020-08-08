@@ -1,6 +1,6 @@
 # serverless-aws-php
 
-Reference implementation of demo application from Serverless Full Stack Application on AWS course in pure PHP
+Reference implementation of demo application from Serverless [Full Stack Application on AWS](https://www.serverless.com/learn/tutorial/full-stack-aws-course-purpose/) course in pure PHP
 ## Installation
 
 Make sure you have [serverless](https://www.serverless.com/framework/docs/getting-started/) installed globally.
